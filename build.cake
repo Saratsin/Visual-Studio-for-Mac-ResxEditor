@@ -4,10 +4,10 @@ var target = Argument("target", "Default");
 var configuration = "Release";
 
 // Define directories.
-var solutionFile = GetFiles("./*.sln").First();
+var solutionFile = GetFiles("./src/*.sln").First();
 
 // Addin project.
-var binaryPath = System.IO.Path.Combine("./src/ResxEditor/bin", configuration, "ResxEditor.dll");
+var binaryPath = System.IO.Path.Combine("./src/bin", configuration, "ResxEditor.dll");
 
 // Output folder.
 var artifactsDir = Directory("./artifacts");
