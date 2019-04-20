@@ -1,133 +1,146 @@
 ﻿using System;
+using System.ComponentModel.Design;
 using Gtk;
 using ResxEditor.Core.Interfaces;
 using ResxEditor.Core.Models;
 using ResxEditor.Core.Views;
-using System.ComponentModel.Design;
 
 namespace ResxEditor.Core.Controllers
 {
-	public class ResourceController : IResourceController
-	{
-		public event EventHandler<bool> OnDirtyChanged;
-		public event EventHandler RemoveFailed;
+    public class ResourceController : IResourceController
+    {
+        private ResourceHandler _resxHandler;
 
-		ResourceHandler m_resxHandler;
+        public ResourceController()
+        {
+            ResourceEditorView = new ResourceEditorView();
+            StoreController = new ResourceStoreController(() => ResourceEditorView.ResourceControlBar.FilterEntry.Text);
 
-		public ResourceController ()
-		{
-			ResourceEditorView = new ResourceEditorView ();
-			StoreController = new ResourceStoreController(() => ResourceEditorView.ResourceControlBar.FilterEntry.Text);
-			ResourceEditorView.ResourceControlBar.FilterEntry.Changed += (_, e) => StoreController.Refilter ();
-			ResourceEditorView.ResourceList.OnResourceAdded += (_, e) => {
-				ResourceEditorView.ResourceControlBar.FilterEntry.Text = "";
-				StoreController.Refilter();
-			};
-			ResourceEditorView.ResourceList.RightClicked += (sender, e) => {
-				var selectedRows = ResourceEditorView.ResourceList.GetSelectedResource().GetSelectedRows();
-				if (selectedRows.Length > 0) {
-					var contextMenu = new CellContextMenu (this, StoreController, selectedRows);
-					contextMenu.Popup ();
-				} else {
-					var contextMenu = new NoCellContextMenu(this);
-					contextMenu.Popup ();
-				}
-			};
-			ResourceEditorView.ResourceList.Model = StoreController.Model;
+            ResourceEditorView.ResourceControlBar.FilterEntry.Changed += (sender, e) => StoreController.Refilter();
 
-			AttachListeners ();
-		}
+            ResourceEditorView.ResourceList.OnResourceAdded += (sender, e) =>
+            {
+                ResourceEditorView.ResourceControlBar.FilterEntry.Text = "";
+                StoreController.Refilter();
+            };
 
-		void AttachListeners () {
-			ResourceEditorView.OnAddResource += (_, __) => AddNewResource ();
-			ResourceEditorView.OnRemoveResource += (_, __) => RemoveCurrentResource ();
+            ResourceEditorView.ResourceList.RightClicked += (sender, e) =>
+            {
+                var selectedRows = ResourceEditorView.ResourceList.GetSelectedResource().GetSelectedRows();
+                if (selectedRows.Length > 0)
+                {
+                    var contextMenu = new CellContextMenu(this, StoreController, selectedRows);
+                    contextMenu.Popup();
+                }
+                else
+                {
+                    var contextMenu = new NoCellContextMenu(this);
+                    contextMenu.Popup();
+                }
+            };
 
-			ResourceEditorView.ResourceList.OnNameEdited += (_, e) => {
-				TreeIter iter;
-				StoreController.GetIter(out iter, new TreePath(e.Path));
-				string oldName = StoreController.GetName(new TreePath(e.Path));
+            ResourceEditorView.ResourceList.Model = StoreController.Model;
 
-				m_resxHandler.RemoveResource(oldName);
-				m_resxHandler.AddResource(e.NextText, string.Empty);
+            AttachListeners();
+        }
 
-				StoreController.SetName (e.Path, e.NextText);
-				OnDirtyChanged(this, true);
-			};
-			ResourceEditorView.ResourceList.OnValueEdited += (_, e) => {
-				string name = StoreController.GetName(new TreePath(e.Path));
+        public event EventHandler<bool> OnDirtyChanged;
 
-				m_resxHandler.RemoveResource(name);
-				m_resxHandler.AddResource(name, e.NextText);
+        public string Filename { get; set; }
 
-				StoreController.SetValue (e.Path, e.NextText);
-				OnDirtyChanged (this, true);
-			};
-			ResourceEditorView.ResourceList.OnCommentEdited += (_, e) => {
-				TreePath path = new TreePath(e.Path);
-				string name = StoreController.GetName(path);
-				string value = StoreController.GetValue(path);
+        public IResourceListStore StoreController { get; set; }
 
-				m_resxHandler.RemoveResource(name);
-				m_resxHandler.AddResource(name, value, e.NextText);
+        public ResourceEditorView ResourceEditorView { get; set; }
 
-				StoreController.SetComment (e.Path, e.NextText);
-				OnDirtyChanged (this, true);
-			};
-		}
+        public void AddNewResource()
+        {
+            var iter = StoreController.Prepend();
+            var path = StoreController.GetPath(iter);
+            ResourceEditorView.ResourceList.SetCursor(path, ResourceEditorView.ResourceList.NameColumn, true);
+            OnDirtyChanged(this, true);
+        }
 
-		public void AddNewResource() {
-			TreeIter iter = StoreController.Prepend();
-			TreePath path = StoreController.GetPath(iter);
-			ResourceEditorView.ResourceList.SetCursor(path, ResourceEditorView.ResourceList.NameColumn, true);
-			OnDirtyChanged(this, true);
-		}
+        public void RemoveCurrentResource()
+        {
+            var selectedPaths = ResourceEditorView.ResourceList.GetSelectedResource().GetSelectedRows();
 
-		public void RemoveCurrentResource() {
-			TreePath[] selectedPaths = ResourceEditorView.ResourceList.GetSelectedResource ().GetSelectedRows ();
+            foreach (var selectedPath in selectedPaths)
+            {
+                var name = StoreController.GetName(selectedPath);
+                StoreController.Remove(selectedPath);
+                if (_resxHandler.RemoveResource(name) > 0)
+                {
+                    OnDirtyChanged(this, true);
+                }
+            }
+        }
 
-			foreach (var selectedPath in selectedPaths) {
-				string name = StoreController.GetName (selectedPath);
-				StoreController.Remove (selectedPath);
-				if (m_resxHandler.RemoveResource (name) > 0) {
-					OnDirtyChanged (this, true);
-				}
-			}
-		}
+        public void Load(string fileName)
+        {
+            Filename = fileName;
+            _resxHandler = new ResourceHandler(fileName);
+            _resxHandler.Resources.ForEach((resource) =>
+            {
+                if (resource.FileRef == null)
+                {
+                    var value = resource.GetValue((ITypeResolutionService)null);
+                    var str = value as string;
+                    StoreController.AppendValues(new ResourceModel(resource.Name, str, resource.Comment));
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            });
+        }
 
-		public string Filename {
-			get;
-			set;
-		}
+        public void Save(string fileName)
+        {
+            _resxHandler.WriteToFile(fileName);
+            OnDirtyChanged(this, false);
+        }
 
-		public IResourceListStore StoreController {
-			get;
-			set;
-		}
+        private void AttachListeners()
+        {
+            ResourceEditorView.OnAddResource += (sender, e) => AddNewResource();
 
-		public ResourceEditorView ResourceEditorView {
-			get;
-			set;
-		}
+            ResourceEditorView.OnRemoveResource += (sender, e) => RemoveCurrentResource();
 
-		public void Load (string fileName)
-		{
-			Filename = fileName;
-			m_resxHandler = new ResourceHandler (fileName);
-			m_resxHandler.Resources.ForEach ((resource) => {
-				if (resource.FileRef == null) {
-					object value = resource.GetValue((ITypeResolutionService) null);
-					var str = value as string;
-					StoreController.AppendValues (new ResourceModel (resource.Name, str, resource.Comment));
-				} else {
-					throw new NotImplementedException();
-				}
-			});
-		}
+            ResourceEditorView.ResourceList.OnNameEdited += (sender, e) =>
+            {
+                StoreController.GetIter(out var iter, new TreePath(e.Path));
+                var oldName = StoreController.GetName(new TreePath(e.Path));
 
-		public void Save(string fileName) {
-			m_resxHandler.WriteToFile (fileName);
-			OnDirtyChanged(this, false);
-		}
-	}
+                _resxHandler.RemoveResource(oldName);
+                _resxHandler.AddResource(e.NextText, string.Empty);
+
+                StoreController.SetName(e.Path, e.NextText);
+                OnDirtyChanged(this, true);
+            };
+
+            ResourceEditorView.ResourceList.OnValueEdited += (sender, e) =>
+            {
+                var name = StoreController.GetName(new TreePath(e.Path));
+
+                _resxHandler.RemoveResource(name);
+                _resxHandler.AddResource(name, e.NextText);
+
+                StoreController.SetValue(e.Path, e.NextText);
+                OnDirtyChanged(this, true);
+            };
+
+            ResourceEditorView.ResourceList.OnCommentEdited += (sender, e) =>
+            {
+                var path = new TreePath(e.Path);
+                var name = StoreController.GetName(path);
+                var value = StoreController.GetValue(path);
+
+                _resxHandler.RemoveResource(name);
+                _resxHandler.AddResource(name, value, e.NextText);
+
+                StoreController.SetComment(e.Path, e.NextText);
+                OnDirtyChanged(this, true);
+            };
+        }
+    }
 }
-

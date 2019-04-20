@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace ResxEditor.Core.Enums
+﻿namespace ResxEditor.Core.Enums
 {
 	public enum ResourceColumns
 	{
@@ -9,4 +7,3 @@ namespace ResxEditor.Core.Enums
 		Comment = 2,
 	}
 }
-

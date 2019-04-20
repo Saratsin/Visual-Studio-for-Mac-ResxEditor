@@ -1,18 +1,19 @@
-using System;
-using Gtk;
-using MonoDevelop.Ide.Gui;
-using ResxEditor.Core.Interfaces;
-using ResxEditor.Core.Controllers;
 using System.Threading.Tasks;
-using MonoDevelop.Core;
+using Gtk;
 using MonoDevelop.Components;
+using MonoDevelop.Core;
+using MonoDevelop.Ide.Gui;
+using ResxEditor.Core.Controllers;
+using ResxEditor.Core.Interfaces;
 
 namespace ResxEditor.UI
 {
     public class ResxEditorView : ViewContent
     {
         private IResourceController Controller { get; set; }
+
         private Widget Container { get; set; }
+
         private FilePath CurrentFile { get; set; }
 
         public override Control Control => Container;
@@ -30,7 +31,10 @@ namespace ResxEditor.UI
             Container.ShowAll();
         }
 
-        private void ControllerOnDirtyChanged(object sender, bool isDirty) => IsDirty = isDirty;
+        private void ControllerOnDirtyChanged(object sender, bool isDirty)
+        {
+            IsDirty = isDirty;
+        }
 
         public override Task Load(FileOpenInformation fileOpenInformation)
         {
@@ -46,7 +50,12 @@ namespace ResxEditor.UI
 
         public override Task Save()
         {
-            return CurrentFile != null ? Task.Run(() => Controller.Save(CurrentFile.FullPath)) : base.Save();
+            if (CurrentFile == null)
+            {
+                return base.Save();
+            }
+
+            return Task.Run(() => Controller.Save(CurrentFile.FullPath));
         }
 
         public override void Dispose()
@@ -55,6 +64,7 @@ namespace ResxEditor.UI
             {
                 Controller.OnDirtyChanged -= ControllerOnDirtyChanged;
             }
+
             base.Dispose();
         }
     }

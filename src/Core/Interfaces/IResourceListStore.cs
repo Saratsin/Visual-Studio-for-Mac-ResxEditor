@@ -5,6 +5,7 @@ namespace ResxEditor.Core.Interfaces
 	public interface IResourceListStore : IFilterableResourceStore
 	{
 		bool IsFilterable { get; }
+
 		TreeModel Model { get; }
 
 		void AppendValues (IResourceModel item);
@@ -23,13 +24,10 @@ namespace ResxEditor.Core.Interfaces
 
 		string GetComment (TreePath path);
 
-		#region ListStore
 		TreeIter Prepend ();
 
 		TreePath GetPath (TreeIter iter);
 
 		bool Remove (TreePath path);
-		#endregion
 	}
 }
-

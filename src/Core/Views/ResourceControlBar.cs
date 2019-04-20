@@ -1,57 +1,60 @@
 ﻿using System;
+using Gtk;
 
 namespace ResxEditor.Core.Views
 {
-	public class AddResourceButton : Gtk.Button
-	{
-		static readonly Gtk.Label label = new Gtk.Label("Add Resource");
+    public class AddResourceButton : Button
+    {
+        public AddResourceButton() : base(ProduceLabel()) 
+        {
+        }
 
-		public AddResourceButton(): base(label) {}
-	}
+        private static Label ProduceLabel()
+        {
+            return new Label("Add Resource");
+        }
+    }
 
-	public class RemoveResourceButton : Gtk.Button
-	{
-		static readonly Gtk.Label label = new Gtk.Label("Remove Resource");
+    public class RemoveResourceButton : Button
+    {
+        public RemoveResourceButton() : base(ProduceLabel()) 
+        {
+        }
 
-		public RemoveResourceButton(): base(label) {}
-	}
+        private static Label ProduceLabel()
+        {
+            return new Label("Remove Resource");
+        }
+    }
 
-	public class ResourceControlBar : Gtk.HButtonBox
-	{
-		public event EventHandler OnAddResource;
-		public event EventHandler OnRemoveResource;
+    public class ResourceControlBar : HButtonBox
+    {
+        private readonly AddResourceButton _addResourceButton;
+        private readonly RemoveResourceButton _removeResourceButton;
 
-		AddResourceButton AddResourceButton {
-			get;
-			set;
-		}
+        public ResourceControlBar()
+        {
+            Layout = ButtonBoxStyle.Start;
+            Spacing = 10;
 
-		RemoveResourceButton RemoveResourceButton {
-			get;
-			set;
-		}
+            _addResourceButton = new AddResourceButton();
+            _removeResourceButton = new RemoveResourceButton();
 
-		public Gtk.Entry FilterEntry {
-			get;
-			set;
-		}
+            FilterEntry = new Entry();
 
-		public ResourceControlBar ()
-		{
-			Layout = Gtk.ButtonBoxStyle.Start;
-			Spacing = 10;
+            _addResourceButton.Clicked += (sender, e) => OnAddResource(this, e);
 
-			AddResourceButton = new AddResourceButton ();
-			RemoveResourceButton = new RemoveResourceButton ();
-			FilterEntry = new Gtk.Entry ();
+            _removeResourceButton.Clicked += (sender, e) => OnRemoveResource(this, e);
 
-			AddResourceButton.Clicked += (sender, e) => OnAddResource (this, e);
-			RemoveResourceButton.Clicked += (sender, e) => OnRemoveResource (this, e);
+            PackStart(_addResourceButton, false, false, 10);
+            PackStart(_removeResourceButton, false, false, 10);
+            PackEnd(FilterEntry);
+        }
 
-			PackStart (AddResourceButton, false, false, 10);
-			PackStart (RemoveResourceButton, false, false, 10);
-			PackEnd (FilterEntry);
-		}
-	}
+        public event EventHandler OnAddResource;
+
+        public event EventHandler OnRemoveResource;
+
+        public Entry FilterEntry { get; }
+    }
 }
-

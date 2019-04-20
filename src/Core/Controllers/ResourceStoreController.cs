@@ -5,134 +5,125 @@ using ResxEditor.Core.Models;
 
 namespace ResxEditor.Core.Controllers
 {
-	public class ResourceStoreController : IResourceListStore
-	{
-		public ResourceStoreController (Func<string> GetFilterText)
-		{
-			BaseModel = new ResourceListStore ();
+    public class ResourceStoreController : IResourceListStore
+    {
+        private readonly ResourceListStore _baseModel;
+        private readonly ResourceFilter _resourceFilter;
+        private readonly Func<string> _getFilterTextFunc;
 
-			this.GetFilterText = GetFilterText;
+        public ResourceStoreController(Func<string> getFilterTextFunc)
+        {
+            _baseModel = new ResourceListStore();
+            _getFilterTextFunc = getFilterTextFunc;
+            _resourceFilter = new ResourceFilter(getFilterTextFunc, _baseModel, null);
+        }
 
-			ResourceFilter = new ResourceFilter(GetFilterText, BaseModel, null);
-		}
+        public bool IsFilterable => _getFilterTextFunc != null;
 
-		public bool IsFilterable { get { return GetFilterText != null; } }
+        public TreeModel Model => IsFilterable ? _resourceFilter : (TreeModel)_baseModel;
 
-		Func<string> GetFilterText { get; set; }
+        public void AppendValues(IResourceModel item)
+        {
+            _baseModel.AppendValues(item.Name, item.Value, item.Comment);
+        }
 
-		public TreeModel Model {
-			get {
-				if (IsFilterable) {
-					return ResourceFilter;
-				}
-				return BaseModel;
-			}
-		}
+        public bool SetColumnValue(string path, int column, string value)
+        {
+            if (!_baseModel.GetIter(out var iter, new TreePath(path)))
+            {
+                return false;
+            }
 
-		ResourceListStore BaseModel { get; set; }
+            _baseModel.SetValue(iter, column, value);
+            return true;
+        }
 
-		public void AppendValues(IResourceModel item) {
-			BaseModel.AppendValues (item.Name, item.Value, item.Comment);
-		}
+        public bool SetName(string path, string nextName)
+        {
+            if (!_baseModel.GetIter(out var iter, new TreePath(path)))
+            {
+                return false;
+            }
 
-		public bool SetColumnValue(string path, int column, string value) {
-			TreeIter iter;
-			if (! BaseModel.GetIter(out iter, new TreePath(path))) {
-				return false;
-			} else {
-				BaseModel.SetValue (iter, column, value);
-				return true;
-			}
-		}
+            _baseModel.SetValue(iter, (int)Enums.ResourceColumns.Name, nextName);
+            return true;
+        }
 
-		public bool SetName(string path, string nextName) {
-			TreeIter iter;
-			if (! BaseModel.GetIter(out iter, new TreePath(path))) {
-				return false;
-			} else {
-				BaseModel.SetValue (iter, (int)Enums.ResourceColumns.Name, nextName);
-				return true;
-			}
-		}
+        public bool SetValue(string path, string nextValue)
+        {
+            if (!_baseModel.GetIter(out var iter, new TreePath(path)))
+            {
+                return false;
+            }
 
-		public bool SetValue(string path, string nextValue) {
-			TreeIter iter;
-			if (! BaseModel.GetIter(out iter, new TreePath(path))) {
-				return false;
-			} else {
-				BaseModel.SetValue (iter, (int)Enums.ResourceColumns.Value, nextValue);
-				return true;
-			}
-		}
+            _baseModel.SetValue(iter, (int)Enums.ResourceColumns.Value, nextValue);
+            return true;
+        }
 
-		public bool SetComment(string path, string nextValue) {
-			TreeIter iter;
-			if (! BaseModel.GetIter(out iter, new TreePath(path))) {
-				return false;
-			} else {
-				BaseModel.SetValue (iter, (int)Enums.ResourceColumns.Comment, nextValue);
-				return true;
-			}
-		}
+        public bool SetComment(string path, string nextValue)
+        {
+            if (!_baseModel.GetIter(out var iter, new TreePath(path)))
+            {
+                return false;
+            }
 
-		public string GetName(TreePath path) {
-			TreeIter iter;
+            _baseModel.SetValue(iter, (int)Enums.ResourceColumns.Comment, nextValue);
+            return true;
+        }
 
-			return Model.GetIter (out iter, path) ? Model.GetValue (iter, (int)Enums.ResourceColumns.Name) as string : null;
-		}
+        public string GetName(TreePath path)
+        {
+            return Model.GetIter(out var iter, path) ? Model.GetValue(iter, (int)Enums.ResourceColumns.Name) as string : null;
+        }
 
-		public string GetValue (TreePath path) {
-			TreeIter iter;
+        public string GetValue(TreePath path)
+        {
+            return Model.GetIter(out var iter, path) ? Model.GetValue(iter, (int)Enums.ResourceColumns.Value) as string : null;
+        }
 
-			return Model.GetIter (out iter, path) ? Model.GetValue (iter, (int)Enums.ResourceColumns.Value) as string : null;
-		}
+        public string GetComment(TreePath path)
+        {
+            return Model.GetIter(out var iter, path) ? Model.GetValue(iter, (int)Enums.ResourceColumns.Comment) as string : null;
+        }
 
-		public string GetComment (TreePath path)
-		{
-			TreeIter iter;
+        public bool GetIter(out TreeIter iter, TreePath path)
+        {
+            return Model.GetIter(out iter, path);
+        }
 
-			return Model.GetIter (out iter, path) ? Model.GetValue (iter, (int)Enums.ResourceColumns.Comment) as string : null;
-		}
+        public TreeIter Prepend()
+        {
+            return _baseModel.Prepend();
+        }
 
-		public bool GetIter (out TreeIter iter, TreePath path)
-		{
-			return Model.GetIter (out iter, path);
-		}
+        public TreePath GetPath(TreeIter iter)
+        {
+            return _baseModel.GetPath(iter);
+        }
 
-		public TreeIter Prepend ()
-		{
-			return BaseModel.Prepend ();
-		}
+        /// <summary>
+        /// Remove the specified resource at the path
+        /// </summary>
+        /// <param name="path">Returns true if the path is a valid path.</param>
+        public bool Remove(TreePath path)
+        {
+            var iter = default(TreeIter);
+            if (IsFilterable)
+            {
+                _resourceFilter.GetIter(out iter, path);
+                iter = _resourceFilter.ConvertIterToChildIter(iter);
+            }
+            else
+            {
+                _baseModel.GetIter(out iter, path);
+            }
 
-		public TreePath GetPath (TreeIter iter)
-		{
-			return BaseModel.GetPath (iter);
-		}
+            return _baseModel.Remove(ref iter);
+        }
 
-		/// <summary>
-		/// Remove the specified resource at the path
-		/// </summary>
-		/// <param name="path">Returns true if the path is a valid path.</param>
-		public bool Remove (TreePath path) {
-			TreeIter iter;
-			if (IsFilterable) {
-				ResourceFilter.GetIter (out iter, path);
-				iter = ResourceFilter.ConvertIterToChildIter (iter);
-			} else {
-				BaseModel.GetIter (out iter, path);
-			}
-
-			return BaseModel.Remove (ref iter);
-		}
-
-		#region IFilter
-		ResourceFilter ResourceFilter { get; set; }
-
-		public void Refilter ()
-		{
-			ResourceFilter.Refilter ();
-		}
-		#endregion
-	}
+        public void Refilter()
+        {
+            _resourceFilter.Refilter();
+        }
+    }
 }
-

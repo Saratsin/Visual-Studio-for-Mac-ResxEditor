@@ -1,11 +1,12 @@
 ﻿using System;
+using Gtk;
 
 namespace ResxEditor.Core.Interfaces
 {
 	public interface IListViewColumn
 	{
-		Gtk.CellRenderer Renderer { get; }
+		CellRenderer Renderer { get; }
+
 		Type ColumnType { get; }
 	}
 }
-

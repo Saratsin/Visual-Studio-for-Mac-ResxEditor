@@ -7,6 +7,7 @@ namespace ResxEditor.UI
     public class DisplayBindings : IViewDisplayBinding
     {
         public bool CanUseAsDefault => true;
+
         public string Name => "Resx Editor";
 
         public ViewContent CreateContent(FilePath fileName, string mimeType, Project ownerProject)
@@ -20,4 +21,3 @@ namespace ResxEditor.UI
         }
     }
 }
-

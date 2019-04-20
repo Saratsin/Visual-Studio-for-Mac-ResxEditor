@@ -1,45 +1,37 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Resources;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ResxEditor.Core.Controllers
 {
-	public class ResourceHandler
-	{
-		public List<ResXDataNode> Resources {
-			get;
-			private set;
-		}
+    public class ResourceHandler
+    {
+        public ResourceHandler(string fileName)
+        {
+            Resources = new List<ResXDataNode>();
+            using (var reader = new ResXResourceReader(fileName) { UseResXDataNodes = true })
+            {
+                LoadResources(reader);
+            }
+        }
 
-		public ResourceHandler (string fileName)
-		{
-			Resources = new List<ResXDataNode> ();
-			using (var reader = new ResXResourceReader (fileName) { UseResXDataNodes = true }) {
-				LoadResources (reader);
-			}
-		}
+        public List<ResXDataNode> Resources { get; private set; }
 
-		void LoadResources(ResXResourceReader resxReader) {
-			IDictionaryEnumerator enumerator = resxReader.GetEnumerator ();
-			while (enumerator.MoveNext ()) {
-				Resources.Add (enumerator.Value as ResXDataNode);
-			}
-		}
+        public int RemoveResource(string name)
+        {
+            return Resources.RemoveAll(resource => resource.Name == name);
+        }
 
-		public int RemoveResource(string name) {
-			return Resources.RemoveAll (resource => resource.Name == name);
-		}
+        public void AddResource(string name, string value, string comment = null)
+        {
+            Resources.Add(new ResXDataNode(name, value) { Comment = comment });
+        }
 
-		public void AddResource(string name, string value, string comment = null) {
-			Resources.Add (new ResXDataNode (name, value) { Comment = comment });
-		}
-
-		public void WriteToFile(string fileName) 
+        public void WriteToFile(string fileName)
         {
             using (var resxWriter = new ResXResourceWriter(fileName))
             {
@@ -120,6 +112,15 @@ namespace ResxEditor.Core.Controllers
             {
                 streamWriter.Write(resxFileText);
             }
-		}
-	}
+        }
+
+        private void LoadResources(ResXResourceReader resxReader)
+        {
+            var enumerator = resxReader.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                Resources.Add(enumerator.Value as ResXDataNode);
+            }
+        }
+    }
 }

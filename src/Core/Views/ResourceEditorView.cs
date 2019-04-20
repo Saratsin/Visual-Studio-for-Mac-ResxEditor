@@ -3,9 +3,9 @@ using Gtk;
 
 namespace ResxEditor.Core.Views
 {
-	public class ResourceEditorView : Gtk.VBox
-	{
-		public ResourceEditorView () : base()
+	public class ResourceEditorView : VBox
+    {
+		public ResourceEditorView ()
 		{
 			ResourceList = new ResourceList ();
 			ResourceControlBar = new ResourceControlBar ();
@@ -13,7 +13,7 @@ namespace ResxEditor.Core.Views
 			ResourceControlBar.OnAddResource += (sender, e) => OnAddResource (this, e);
 			ResourceControlBar.OnRemoveResource += (sender, e) => OnRemoveResource (this, e);
 
-			ScrolledWindow listContainer = new ScrolledWindow ();
+			var listContainer = new ScrolledWindow ();
 			listContainer.Add (ResourceList);
 
 			PackStart (ResourceControlBar, false, true, 5);
@@ -21,21 +21,12 @@ namespace ResxEditor.Core.Views
 		}
 
 		public event EventHandler OnAddResource;
+
 		public event EventHandler OnRemoveResource;
 
-		public ResourceList ResourceList {
-			get;
-			set;
-		}
+		public ResourceList ResourceList { get; }
 
-		public ResourceControlBar ResourceControlBar {
-			get;
-			set;
-		}
-
-		public void Load (string filename) {
-			return;
-		}
+		public ResourceControlBar ResourceControlBar { get; }
 	}
 }
 
