@@ -1,6 +1,6 @@
 ﻿using Mono.Addins;
 
-[assembly: Addin("ResxEditor", Namespace = "ResxEditor", Version = "0.4.3")]
+[assembly: Addin("ResxEditor", Namespace = "ResxEditor", Version = "0.4.4")]
 
 [assembly: AddinName("ResxEditor")]
 [assembly: AddinCategory("IDE extensions")]

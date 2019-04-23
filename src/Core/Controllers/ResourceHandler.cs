@@ -35,7 +35,10 @@ namespace ResxEditor.Core.Controllers
         {
             using (var resxWriter = new ResXResourceWriter(fileName))
             {
-                Resources.ForEach(resxWriter.AddResource);
+                foreach(var resource in Resources.OrderBy(node => node.Name))
+                {
+                    resxWriter.AddResource(resource);
+                }
 
                 if (Resources.Count == 0)
                 {
